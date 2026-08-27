@@ -1,21 +1,21 @@
 # Claude Code サンドボックス方式の比較
 
-Claude Code を隔離して実行する主な 4 方式（ネイティブ sandbox / sandbox-runtime / Dev Container / Claude Code on the web）の仕組み・対応 OS・隔離範囲・セットアップコスト・推奨用途を比較する。
+Claude Code を隔離して実行する 6 方式（ネイティブ sandbox / sandbox-runtime / Dev Container / カスタムコンテナ / 専用 VM / Claude Code on the web）の仕組み・対応 OS・隔離範囲・セットアップコスト・推奨用途を比較する。リスク別にどの方式で何が対策できるかは[リスクと対策](./risks-and-mitigations.md)を参照。
 
 本ドキュメントは 2026-08 時点の公式ドキュメント（[参考リンク](#参考リンク)）に基づく。設定スキーマは変わりうるため、実際に設定する際は最新の公式ドキュメントを確認すること。
 
 ## 比較表
 
-| 項目 | ネイティブ sandbox<br>(sandboxed Bash tool) | sandbox-runtime<br>(`@anthropic-ai/sandbox-runtime`) | Dev Container | Claude Code on the web |
-| :--- | :--- | :--- | :--- | :--- |
-| 仕組み | OS のサンドボックス機構で Bash コマンドを隔離。macOS は Seatbelt、Linux / WSL2 は bubblewrap + socat（プロキシ経由でネットワーク制御） | ネイティブ sandbox と同じ Seatbelt / bubblewrap で Claude Code の**プロセス全体**をラップ | Docker コンテナ内で Claude Code を実行。参照実装は iptables / ipset によるデフォルト拒否のファイアウォール（`init-firewall.sh`）付き | Anthropic 管理の隔離 VM 上でセッションを実行。ネットワークプロキシが許可リストを強制し、GitHub トークンは VM 外のプロキシが保持 |
-| 隔離範囲 | Bash コマンドとその子プロセスのみ（Read / Edit などの組み込みツール、MCP サーバー、フックはホスト上で動く） | Claude Code プロセス全体（ファイルツール、MCP サーバー、フックを含む） | 開発環境全体（コンテナ内で動くものすべて） | OS 全体（VM 単位） |
-| 対応 OS | macOS / Linux / WSL2。**Windows ネイティブは非対応**（WSL1 も非対応） | macOS / Linux（WSL2 含む）。Windows は alpha サポート（専用ユーザー + WFP） | Docker が動くホスト（Windows ネイティブでも利用可） | ブラウザまたは CLI（`--cloud`）から利用。ローカル環境不問 |
-| Docker 要否 | 不要 | 不要 | 必要 | 不要 |
-| セットアップコスト | macOS はゼロ。Linux / WSL2 は低（`bubblewrap` と `socat` のインストール） | 低（npm パッケージ + `~/.srt-settings.json`） | 中（Docker、devcontainer 対応エディタ、設定ファイル） | なし（Claude サブスクリプションが必要。Web から起動する場合は GitHub 連携も必要） |
-| 推奨用途 | 日常の開発で許可プロンプトを減らす | Docker なしで MCP サーバーやフックまで隔離したい。`--dangerously-skip-permissions` での無人実行 | チームで環境を標準化しつつ無人実行もしたい | 信頼できないリポジトリの検証、ローカル環境のないデバイスからのタスク委任 |
+| 項目 | ネイティブ sandbox<br>(sandboxed Bash tool) | sandbox-runtime<br>(`@anthropic-ai/sandbox-runtime`) | Dev Container | カスタムコンテナ | 専用 VM | Claude Code on the web |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 仕組み | OS のサンドボックス機構で Bash コマンドを隔離。macOS は Seatbelt、Linux / WSL2 は bubblewrap + socat（プロキシ経由でネットワーク制御） | ネイティブ sandbox と同じ Seatbelt / bubblewrap で Claude Code の**プロセス全体**をラップ | Docker コンテナ内で Claude Code を実行。参照実装は iptables / ipset によるデフォルト拒否のファイアウォール（`init-firewall.sh`）付き | 任意の Docker / OCI イメージで Claude Code を実行。ネットワークポリシー、マウント、seccomp プロファイルを自前で設計する | 専用カーネルを持つ VM で Claude Code を実行。クラウドインスタンス、ローカルハイパーバイザ、Firecracker 等の microVM | Anthropic 管理の隔離 VM 上でセッションを実行。ネットワークプロキシが許可リストを強制し、GitHub トークンは VM 外のプロキシが保持 |
+| 隔離範囲 | Bash コマンドとその子プロセスのみ（Read / Edit などの組み込みツール、MCP サーバー、フックはホスト上で動く） | Claude Code プロセス全体（ファイルツール、MCP サーバー、フックを含む） | 開発環境全体（コンテナ内で動くものすべて） | 開発環境全体（コンテナ内で動くものすべて） | OS 全体（専用カーネル） | OS 全体（VM 単位、Anthropic がホスト） |
+| 対応 OS | macOS / Linux / WSL2。**Windows ネイティブは非対応**（WSL1 も非対応） | macOS / Linux（WSL2 含む）。Windows は alpha サポート（専用ユーザー + WFP） | Docker が動くホスト（Windows ネイティブでも利用可） | Docker / OCI ランタイムが動くホスト | ハイパーバイザまたはクラウドが使える環境 | ブラウザまたは CLI（`--cloud`）から利用。ローカル環境不問 |
+| Docker 要否 | 不要 | 不要 | 必要 | 必要 | 不要 | 不要 |
+| セットアップコスト | macOS はゼロ。Linux / WSL2 は低（`bubblewrap` と `socat` のインストール） | 低（npm パッケージ + `~/.srt-settings.json`） | 中（Docker、devcontainer 対応エディタ、設定ファイル） | 中〜高（イメージ・ネットワークポリシー・マウントの自前設計） | 高（VM の構築・運用） | なし（Claude サブスクリプションが必要。Web から起動する場合は GitHub 連携も必要） |
+| 推奨用途 | 日常の開発で許可プロンプトを減らす | Docker なしで MCP サーバーやフックまで隔離したい。`--dangerously-skip-permissions` での無人実行 | チームで環境を標準化しつつ無人実行もしたい | 既存のコンテナ基盤・CI ランナーに組み込む | 信頼できないコードの評価、カーネルレベルの分離が要件の場合 | 信頼できないリポジトリの検証、ローカル環境のないデバイスからのタスク委任 |
 
-前者 2 方式はホスト OS 上でコンテナなしに動き、後者 2 方式はコンテナ / VM の中に Claude Code 全体を入れる。公式ドキュメントではこのほかにカスタムコンテナと専用 VM も比較されている（[Sandbox environments](https://code.claude.com/docs/en/sandbox-environments) 参照）。
+前者 2 方式はホスト OS 上でコンテナなしに動き、後者 4 方式はコンテナ / VM の中に Claude Code 全体を入れる（[Sandbox environments](https://code.claude.com/docs/en/sandbox-environments) 参照）。
 
 ## 各方式の詳細
 
@@ -59,7 +59,23 @@ VS Code などの Dev Containers 対応エディタが管理する Docker コン
 - **推奨用途**: チームで隔離環境を標準化する。デフォルト拒否のファイアウォール構成なら、非 root ユーザーで `--dangerously-skip-permissions` を使った無人実行にも対応する。
 - **注意**: `--dangerously-skip-permissions` 実行時、コンテナ内からアクセスできるもの（`~/.claude` の認証情報を含む）の持ち出しは防げない。信頼できるリポジトリでのみ使い、`~/.ssh` などのホストの秘密情報はマウントしない。
 
-### 4. Claude Code on the web
+### 4. カスタムコンテナ
+
+任意の Docker / OCI コンテナイメージの中で Claude Code を実行する方式。既存のコンテナ基盤や CI ランナーを持つ組織で最も一般的な選択肢。
+
+- **仕組み**: ベースイメージ、ネットワークポリシー、マウントするボリューム、seccomp プロファイルをすべて自前で設計する。マネージドなサンドボックス / リモート実行サービスにコンテナをホストさせることもできる。
+- **チェックポイント**: どの方式のコンテナでも共通で、(1) 書き込み可能でマウントしているもの、(2) コンテナ内から到達できる認証情報・トークン、(3) ネットワークの外向きポリシー、をレビューする。
+- **推奨用途**: 既存のコンテナインフラ・CI に Claude Code を組み込む場合。
+- **注意**: コンテナ内にネイティブ sandbox を重ねてコマンド単位の制限を追加できる。非特権コンテナではネストサンドボックス用の設定が必要（[Sandboxing troubleshooting](https://code.claude.com/docs/en/sandboxing#troubleshooting) 参照）。
+
+### 5. 専用 VM
+
+専用カーネルを持つ仮想マシンの中で Claude Code を実行する、最も分離の強い方式。
+
+- **仕組み**: クラウドインスタンス、ローカルハイパーバイザ、Firecracker などの microVM が選択肢。[Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) は専用の Docker デーモンとワークスペース同期を持つ microVM を提供する（Docker Desktop 不要の無償スタンドアロン製品）。
+- **推奨用途**: 信頼できないコードの評価、エージェントとホストのカーネルレベル分離がセキュリティポリシー上の要件になる場合、ホストレベルの方式ではコンプライアンス要件を満たせない場合。
+
+### 6. Claude Code on the web
 
 各セッションを Anthropic 管理の隔離 VM で実行するホスト型の方式。
 

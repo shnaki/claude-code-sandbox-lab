@@ -8,7 +8,8 @@ Claude Code の堅牢なサンドボックス構成を試す実験場。隔離�
 | :--- | :--- |
 | [`.devcontainer/`](./.devcontainer/) | Dev Container 構成。anthropics/claude-code の公式リファレンス実装（`devcontainer.json` / `Dockerfile` / `init-firewall.sh`）準拠 |
 | [`srt/`](./srt/) | [`@anthropic-ai/sandbox-runtime`](https://github.com/anthropic-experimental/sandbox-runtime) (srt) の設定例と WSL2 での検証手順 |
-| [`docs/sandbox-comparison.md`](./docs/sandbox-comparison.md) | 主要 4 方式（ネイティブ sandbox / sandbox-runtime / Dev Container / Claude Code on the web）の比較ドキュメント |
+| [`docs/sandbox-comparison.md`](./docs/sandbox-comparison.md) | 公式 6 方式（ネイティブ sandbox / sandbox-runtime / Dev Container / カスタムコンテナ / 専用 VM / Claude Code on the web）の比較ドキュメント |
+| [`docs/risks-and-mitigations.md`](./docs/risks-and-mitigations.md) | Claude Code 利用時のリスク一覧と対策、リスク × サンドボックス 6 方式の対策可否マトリクス |
 
 ## 各構成の概要と検証結果
 
@@ -34,4 +35,8 @@ srt は bubblewrap + プロキシ経由のネットワークフィルタリン�
 
 ### 方式比較（[`docs/sandbox-comparison.md`](./docs/sandbox-comparison.md)）
 
-ネイティブ sandbox（sandboxed Bash tool）、sandbox-runtime、Dev Container、Claude Code on the web の 4 方式について、仕組み・隔離範囲・対応 OS・セットアップコスト・推奨用途を比較する。パーミッションモードとの関係や、ネイティブ sandbox の `settings.json` 設定例も含む。どの方式を選ぶかの出発点として参照する。
+ネイティブ sandbox（sandboxed Bash tool）、sandbox-runtime、Dev Container、カスタムコンテナ、専用 VM、Claude Code on the web の公式 6 方式について、仕組み・隔離範囲・対応 OS・セットアップコスト・推奨用途を比較する。パーミッションモードとの関係や、ネイティブ sandbox の `settings.json` 設定例も含む。どの方式を選ぶかの出発点として参照する。
+
+### リスクと対策（[`docs/risks-and-mitigations.md`](./docs/risks-and-mitigations.md)）
+
+Claude Code 利用時に発生しうるリスク（プロンプトインジェクション、認証情報の流出、設定改ざんによる永続化、無人実行の暴走など 11 項目）を整理し、それぞれに必要な対策をまとめる。あわせて、サンドボックス 6 方式ごとにどのリスクを対策できるかをマトリクスで可視化する。サンドボックスでは守れない領域（プロジェクトコードの改変、API へのデータ送信）も明示している。
