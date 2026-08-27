@@ -1,0 +1,38 @@
+{
+  "network": {
+    "allowedDomains": [
+      "api.anthropic.com",
+      "console.anthropic.com",
+      "statsig.anthropic.com",
+      "sentry.io",
+      "github.com",
+      "api.github.com",
+      "codeload.github.com",
+      "objects.githubusercontent.com",
+      "raw.githubusercontent.com",
+      "registry.npmjs.org"
+    ],
+    "deniedDomains": []
+  },
+  "filesystem": {
+    "denyRead": ["/home"],
+    "allowRead": [
+      ".",
+      "~/.claude",
+      "~/.claude.json",
+      "~/.nvm",
+      "~/.npm"
+    ],
+    "allowWrite": [
+      ".",
+      "/tmp",
+      "~/.claude",
+      "~/.claude.json"
+    ],
+    "denyWrite": [
+      ".git/hooks",
+      ".git/config",
+      ".env"
+    ]
+  }
+}
