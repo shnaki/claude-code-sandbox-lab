@@ -11,6 +11,7 @@ Claude Code の堅牢なサンドボックス構成を試す実験場。隔離�
 | [`docs/sandbox-comparison.md`](./docs/sandbox-comparison.md) | 公式 6 方式（ネイティブ sandbox / sandbox-runtime / Dev Container / カスタムコンテナ / 専用 VM / Claude Code on the web）の比較ドキュメント |
 | [`docs/risks-and-mitigations.md`](./docs/risks-and-mitigations.md) | Claude Code 利用時のリスク一覧と対策、リスク × サンドボックス 6 方式の対策可否マトリクス |
 | [`docs/threat-catalogs.md`](./docs/threat-catalogs.md) | AI 利用の脅威カタログ資料一覧（カテゴリ別）、脅威リストの統合方針、脅威 × 3 ユースケースのマトリクス設計案 |
+| [`docs/threat-matrix.md`](./docs/threat-matrix.md) | 脅威 × 3 ユースケース（チャットのみ / Claude Code 顧客資産なし / 顧客資産あり）のマトリクス本体。統合脅威リスト 22 行の該当度・対策・出典 |
 
 ## 各構成の概要と検証結果
 
